@@ -4,19 +4,20 @@
 
 var express = require('express');
 var bcrypt = require('bcryptjs');
+var Usuario = require('../models/usuario');
+var mdAutenticacion = require('../middlewares/autenticacion');
 
 // ============================================================================================
 // Inicializar variable
 // ============================================================================================
 
 var app = express();
-var Usuario = require('../models/usuario');
 
 // ============================================================================================
 // Obtener usuarios
 // ============================================================================================
 
-app.get("/", (req, res, next) => {
+app.get("/", mdAutenticacion.verificaToken, (req, res, next) => {
 
     Usuario.find({}, 'nombre email img role').exec((err, usuarios) => {
 
@@ -38,11 +39,12 @@ app.get("/", (req, res, next) => {
 // ============================================================================================
 // Fin --> Obtener usuarios
 // ============================================================================================
+
 // ============================================================================================
 // Crear nuevo usuario
 // ============================================================================================
 
-app.post('/', (req, res) => {
+app.post('/', mdAutenticacion.verificaToken, (req, res) => {
 
     var body = req.body;
 
@@ -66,7 +68,8 @@ app.post('/', (req, res) => {
 
         res.status(201).json({
             ok: true,
-            usuario: usuarioGuardado
+            usuario: usuarioGuardado,
+            usuarioToken: req.usuario.nombre
         });
 
     });
@@ -80,7 +83,7 @@ app.post('/', (req, res) => {
 // Actualizar usuario
 // ============================================================================================
 
-app.put('/:id', (req, res) => {
+app.put('/:id', mdAutenticacion.verificaToken, (req, res) => {
 
     var id = req.params.id;
     var body = req.body;
@@ -130,7 +133,43 @@ app.put('/:id', (req, res) => {
 // ============================================================================================
 // Fin --> Actualizar usuario
 // ============================================================================================
+// ============================================================================================
+// Borrar usuario por el id
+// ============================================================================================
 
+app.delete('/:id', mdAutenticacion.verificaToken, (req, res) => {
+
+    var id = req.params.id;
+
+    Usuario.findByIdAndDelete(id, (err, usuarioBorrado) => {
+
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'El usuario no pudo ser eliminado',
+                errors: err
+            });
+        }
+
+        if (!usuarioBorrado) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'El usuario no existe',
+                errors: { message: 'El usuario no existe' }
+            });
+        }
+
+        res.status(200).json({
+            ok: true,
+            usuario: usuarioBorrado
+        });
+    });
+
+});
+
+// ============================================================================================
+// Fin --> Borrar usuario
+// ============================================================================================
 
 
 
